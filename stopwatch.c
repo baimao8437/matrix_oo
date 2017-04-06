@@ -1,25 +1,29 @@
-#include <stdbool.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <time.h>
-
+#include <string.h>
+#include <assert.h>
 #include "stopwatch.h"
 
-struct StopwatchInternal {
+typedef struct timespec Time;
+
+struct Stopwatch_struct {
     bool running;
-    struct timespec last_time;
-    struct timespec total;
+    Time last_time;
+    Time total;
+    long time_unit;
 };
 
-static struct timespec clock_time()
+static Time clock_time()
 {
-    struct timespec time_now;
+    Time time_now;
     clock_gettime(CLOCK_REALTIME, &time_now);
     return time_now;
 }
 
-static struct timespec time_diff(struct timespec t1, struct timespec t2)
+static Time timeDiff(Time t1, Time t2)
 {
-    struct timespec diff;
+    Time diff;
     if (t2.tv_nsec - t1.tv_nsec < 0) {
         diff.tv_sec  = t2.tv_sec - t1.tv_sec - 1;
         diff.tv_nsec = t2.tv_nsec - t1.tv_nsec + 1000000000;
@@ -30,7 +34,7 @@ static struct timespec time_diff(struct timespec t1, struct timespec t2)
     return diff;
 }
 
-static struct timespec time_add(struct timespec t1, struct timespec t2)
+static Time timeAdd(Time t1, Time t2)
 {
     long sec = t2.tv_sec + t1.tv_sec;
     long nsec = t2.tv_nsec + t1.tv_nsec;
@@ -38,29 +42,33 @@ static struct timespec time_add(struct timespec t1, struct timespec t2)
         nsec -= 1000000000;
         sec++;
     }
-    return (struct timespec) {
+    return (Time) {
         .tv_sec = sec, .tv_nsec = nsec
     };
 }
 
-void reset(watch_p Q)
+watch_p create(char *unit)
 {
-    Q->running = false;
-    Q->last_time = (struct timespec) {
-        0, 0
-    };
-    Q->total = (struct timespec) {
-        0, 0
-    };
-}
-
-watch_p create(void)
-{
-    watch_p S = malloc(sizeof(struct StopwatchInternal));
+    watch_p S = malloc(sizeof(struct Stopwatch_struct));
     if (!S)
         return NULL;
 
-    reset(S);
+    if (!strcmp(unit, "sec"))
+        S->time_unit = 1000000.0;
+    else if (!strcmp(unit, "ms"))
+        S->time_unit = 1000.0;
+    else if (!strcmp(unit, "us"))
+        S->time_unit = 1.0;
+    else
+        assert(NULL && "time unit error");
+
+    S->running = false;
+    S->last_time = (Time) {
+        0, 0
+    };
+    S->total = (Time) {
+        0, 0
+    };
     return S;
 }
 
@@ -69,21 +77,47 @@ void destroy(watch_p S)
     free(S);
 }
 
+/* Start resets the timer to 0.0; use resume for continued total */
+
 void start(watch_p Q)
 {
     if (!(Q->running)) {
         Q->running = true;
-        Q->total = (struct timespec) {
+        Q->total = (Time) {
             0, 0
         };
         Q->last_time = clock_time();
     }
 }
 
+/* Reset and start */
+
+void restart(watch_p Q)
+{
+    Q->running = true;
+    Q->total = (Time) {
+        0, 0
+    };
+    Q->last_time = clock_time();
+}
+
+/*
+    Resume timing, after stopping.  (Does not wipe out
+        accumulated times.)
+*/
+
+void resume(watch_p Q)
+{
+    if (!(Q->running)) {
+        Q-> last_time = clock_time();
+        Q->running = true;
+    }
+}
+
 void stop(watch_p Q)
 {
     if (Q->running) {
-        Q->total = time_add(Q->total, time_diff((Q->last_time), clock_time()));
+        Q->total = timeAdd(Q->total, timeDiff((Q->last_time), clock_time()));
         Q->running = false;
     }
 }
@@ -91,11 +125,11 @@ void stop(watch_p Q)
 double read(watch_p Q)
 {
     if (Q->running) {
-        struct timespec t = clock_time();
-        Q->total = time_add(Q->total, time_diff(Q->last_time, t));
+        Time t = clock_time();
+        Q->total = timeAdd(Q->total, timeDiff(Q->last_time, t));
         Q->last_time = t;
     }
-    return (Q->total.tv_sec * 1000000.0 + Q->total.tv_nsec / 1000.0) / 1000000.0;
+    return (Q->total.tv_sec * 1000000.0 + Q->total.tv_nsec / 1000.0) / Q->time_unit;
 }
 
 /* API gateway */
@@ -103,7 +137,8 @@ struct __STOPWATCH_API__ Stopwatch = {
     .create = create,
     .destroy = destroy,
     .start = start,
+    .restart = restart,
     .stop = stop,
-    .reset = reset,
+    .resume = resume,
     .read = read,
 };
