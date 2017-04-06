@@ -1,5 +1,8 @@
 EXEC = \
     naive \
+    submatrix \
+    sse \
+    sse_prefetch
 
 EXEC := $(addprefix tests/test-matrix_,$(EXEC))
 
@@ -12,7 +15,7 @@ $(GIT_HOOKS):
 	@echo
 
 CC ?= gcc
-CFLAGS = -Wall -std=gnu99 -g -O2 -I.
+CFLAGS = -Wall -std=gnu99 -g -O2 -I. -mavx2
 LDFLAGS = -lpthread
 
 SRCS_common = tests/test-matrix.c
