@@ -1,16 +1,15 @@
 #include "matrix.h"
+#include "stopwatch.h"
 #include <stdio.h>
 
-MatrixAlgo *matrix_providers[] = {                                                                                                                
-    &NaiveMatrixProvider,
-};
+#define TIME_UNIT "ms"
 
 int main()
 {
-    MatrixAlgo *algo = matrix_providers[0];
-
+    watch_p timer = Stopwatch.create(TIME_UNIT);
     Matrix dst, m, n, fixed;
-    algo->assign(&m, (Mat4x4) {
+
+    MatrixProvider.assign(&m, (Mat4x4) {
         .values = {
             { 1, 2, 3, 4, },
             { 5, 6, 7, 8, },
@@ -19,7 +18,7 @@ int main()
         },
     });
 
-    algo->assign(&n, (Mat4x4) {
+    MatrixProvider.assign(&n, (Mat4x4) {
         .values = {
             { 1, 2, 3, 4, },
             { 5, 6, 7, 8, },
@@ -28,9 +27,11 @@ int main()
         },
     });
 
-    algo->mul(&dst, &m, &n);
+    Stopwatch.start(timer);
+    MatrixProvider.mul(&dst, &m, &n);
+    Stopwatch.stop(timer);
 
-    algo->assign(&fixed, (Mat4x4) {
+    MatrixProvider.assign(&fixed, (Mat4x4) {
         .values = {
             { 34,  44,  54,  64, },
             { 82, 108, 134, 160, },
@@ -39,7 +40,9 @@ int main()
         },
     });
 
-    if (algo->equal(&dst, &fixed))
+    if (MatrixProvider.equal(&dst, &fixed)) {
+        printf("time: %lf %s\n", Stopwatch.read(timer), TIME_UNIT);
         return 0;
+    }
     return -1;
 }

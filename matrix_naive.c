@@ -1,12 +1,12 @@
 #include "matrix.h"
 #include <stdlib.h>
 
-struct naive_priv {
+struct matrix_priv {
     float values[4][4];
 };
 
 #define PRIV(x) \
-    ((struct naive_priv *) ((x)->priv))
+    ((struct matrix_priv *) ((x)->priv))
 
 static void assign(Matrix *thiz, Mat4x4 data)
 {
@@ -43,7 +43,7 @@ bool mul(Matrix *dst, const Matrix *l, const Matrix *r)
     return true;
 }
 
-MatrixAlgo NaiveMatrixProvider = {
+MatrixAlgo MatrixProvider = {
     .assign = assign,
     .equal = equal,
     .mul = mul,

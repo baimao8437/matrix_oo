@@ -1,11 +1,11 @@
 EXEC = \
-    tests/test-matrix \
-    tests/test-stopwatch
+    naive \
+
+EXEC := $(addprefix tests/test-matrix_,$(EXEC))
 
 GIT_HOOKS := .git/hooks/applied
-OUT ?= .build
 .PHONY: all
-all: $(GIT_HOOKS) $(OUT) $(EXEC)
+all: $(GIT_HOOKS) $(EXEC)
 
 $(GIT_HOOKS):
 	@scripts/install-git-hooks
@@ -15,22 +15,21 @@ CC ?= gcc
 CFLAGS = -Wall -std=gnu99 -g -O2 -I.
 LDFLAGS = -lpthread
 
-OBJS := \
-	stopwatch.o \
-	matrix_naive.o
+SRCS_common = tests/test-matrix.c
 
-deps := $(OBJS:%.o=%.o.d)
-OBJS := $(addprefix $(OUT)/,$(OBJS))
-deps := $(addprefix $(OUT)/,$(deps))
+REPEAT = 10
 
-tests/test-%: $(OBJS) tests/test-%.c
-	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
+tests/test-%: %.c
+	$(CC) $(CFLAGS) -o $@ $(SRCS_common) $< stopwatch.c
 
-$(OUT)/%.o: %.c $(OUT)
-	$(CC) $(CFLAGS) -c -o $@ -MMD -MF $@.d $<
-
-$(OUT):
-	@mkdir -p $@
+cache-test: $(EXEC)
+	@for method in $(EXEC); \
+	do \
+		printf "%s"$$method"\n";\
+		perf stat --repeat $(REPEAT) \
+		-e cache-misses,cache-references ./$$method; \
+		printf "\n"; \
+	done 
 
 check: $(EXEC)
 	@for test in $^ ; \
@@ -39,7 +38,4 @@ check: $(EXEC)
 	done
 
 clean:
-	$(RM) $(EXEC) $(OBJS) $(deps)
-	@rm -rf $(OUT)
-
--include $(deps)
+	$(RM) $(EXEC)
