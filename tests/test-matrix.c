@@ -41,7 +41,7 @@ int main()
     });
 
     if (MatrixProvider.equal(&dst, &fixed)) {
-        printf("time: %lf %s\n", Stopwatch.read(timer), TIME_UNIT);
+        printf("%lf ", Stopwatch.read(timer));
         return 0;
     }
     return -1;
