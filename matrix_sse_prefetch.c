@@ -32,7 +32,7 @@ static bool equal(const Matrix *l, const Matrix *r)
     return true;
 }
 
-bool mul(Matrix *dst, const Matrix *l, const Matrix *r)
+static bool mul(Matrix *dst, const Matrix *l, const Matrix *r)
 {
     dst->priv = malloc(4 * 4 * sizeof(float));
     int src1_h = 4;
@@ -162,8 +162,4 @@ bool mul(Matrix *dst, const Matrix *l, const Matrix *r)
     return true;
 }
 
-MatrixAlgo MatrixProvider = {
-    .assign = assign,
-    .equal = equal,
-    .mul = mul,
-};
+REGISTER_ALGO(sse_prefetch)

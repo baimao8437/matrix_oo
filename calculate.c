@@ -6,8 +6,7 @@
 int main(int argc, char *argv[])
 {
     FILE *fp = fopen("time.txt", "r");
-    FILE *output = fopen("output.txt", "w");
-    output = fopen("output.txt", "a");
+    FILE *output = fopen("output.txt", "w+a");
     if (!fp) {
         printf("ERROR opening input file orig.txt\n");
         exit(0);
@@ -36,7 +35,7 @@ int main(int argc, char *argv[])
         char method[30] = "";
         char tmp[30] = "";
         fscanf(fp, "%s", method);
-        for (int k = 18 , pos = 0; k < strlen(method); k++, pos++) {
+        for (int k = 0 , pos = 0; k < strlen(method); k++, pos++) {
             if (method[k] == '_') {
                 tmp[pos++] = '\\';
                 tmp[pos++] = '\\';

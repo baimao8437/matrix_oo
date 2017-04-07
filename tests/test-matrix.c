@@ -6,43 +6,51 @@
 
 int main()
 {
-    watch_p timer = Stopwatch.create(TIME_UNIT);
+    FILE *output = fopen("time.txt", "w+a");
     Matrix dst, m, n, fixed;
+    watch_p timer = Stopwatch.create(TIME_UNIT);
 
-    MatrixProvider.assign(&m, (Mat4x4) {
-        .values = {
-            { 1, 2, 3, 4, },
-            { 5, 6, 7, 8, },
-            { 1, 2, 3, 4, },
-            { 5, 6, 7, 8, },
-        },
-    });
+    for (MatrixAlgo *p = MUL_IMPL_BEGIN; p < MUL_IMPL_END; p++) {
+        fprintf(output, "%s ", p->name);
 
-    MatrixProvider.assign(&n, (Mat4x4) {
-        .values = {
-            { 1, 2, 3, 4, },
-            { 5, 6, 7, 8, },
-            { 1, 2, 3, 4, },
-            { 5, 6, 7, 8, },
-        },
-    });
+        p->assign(&m, (Mat4x4) {
+            .values = {
+                { 1, 2, 3, 4, },
+                { 5, 6, 7, 8, },
+                { 1, 2, 3, 4, },
+                { 5, 6, 7, 8, },
+            },
+        });
 
-    Stopwatch.start(timer);
-    MatrixProvider.mul(&dst, &m, &n);
-    Stopwatch.stop(timer);
+        p->assign(&n, (Mat4x4) {
+            .values = {
+                { 1, 2, 3, 4, },
+                { 5, 6, 7, 8, },
+                { 1, 2, 3, 4, },
+                { 5, 6, 7, 8, },
+            },
+        });
+        for (int i = 0; i < REPEAT ; i++) {
+            Stopwatch.restart(timer);
+            p->mul(&dst, &m, &n);
+            Stopwatch.stop(timer);
 
-    MatrixProvider.assign(&fixed, (Mat4x4) {
-        .values = {
-            { 34,  44,  54,  64, },
-            { 82, 108, 134, 160, },
-            { 34,  44,  54,  64, },
-            { 82, 108, 134, 160, },
-        },
-    });
+            p->assign(&fixed, (Mat4x4) {
+                .values = {
+                    { 34,  44,  54,  64, },
+                    { 82, 108, 134, 160, },
+                    { 34,  44,  54,  64, },
+                    { 82, 108, 134, 160, },
+                },
+            });
 
-    if (MatrixProvider.equal(&dst, &fixed)) {
-        printf("%lf ", Stopwatch.read(timer));
-        return 0;
+            if (p->equal(&dst, &fixed)) {
+                fprintf(output, "%lf ", Stopwatch.read(timer));
+            }
+        }
+        fprintf(output, "\n");
     }
-    return -1;
+    Stopwatch.destroy(timer);
+    fclose(output);
+    return 0;
 }

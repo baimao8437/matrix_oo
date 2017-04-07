@@ -15,12 +15,21 @@ typedef struct {
 } Matrix;
 
 typedef struct {
+    const char *name;
     void (*assign)(Matrix *thiz, Mat4x4);
     bool (*equal)(const Matrix *l, const Matrix *r);
     bool (*mul)(Matrix *dst, const Matrix *l, const Matrix *r);
 } MatrixAlgo;
 
+#define REGISTER_ALGO(nameX)\
+	MatrixAlgo MatrixAlgo_##nameX __attribute__((section("MatrixAlgo"))) = { \
+		.name = #nameX, .assign = assign, .equal = equal, .mul = mul, \
+	};
+
 /* Available matrix providers */
-extern MatrixAlgo MatrixProvider;
+extern MatrixAlgo __start_MatrixAlgo[], __stop_MatrixAlgo[];
+
+#define MUL_IMPL_BEGIN __start_MatrixAlgo
+#define MUL_IMPL_END __stop_MatrixAlgo
 
 #endif /* MATRIX_H_ */

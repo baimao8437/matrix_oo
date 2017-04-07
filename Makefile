@@ -1,14 +1,11 @@
 EXEC = \
-    naive \
-    submatrix \
-    sse \
-    sse_prefetch
-
-EXEC := $(addprefix tests/test-matrix_,$(EXEC))
-
+	$(OUT)/test-matrix \
+	$(OUT)/test-stopwatch
+    
 GIT_HOOKS := .git/hooks/applied
+OUT ?= .build
 .PHONY: all
-all: $(GIT_HOOKS) $(EXEC)
+all: $(GIT_HOOKS) $(OUT) $(EXEC)
 
 $(GIT_HOOKS):
 	@scripts/install-git-hooks
@@ -20,11 +17,31 @@ LDFLAGS = -lpthread
 
 SRCS_common = tests/test-matrix.c
 
-METHOD_NUM = $(words $(EXEC))
-REPEAT = 1000
+OBJS := \
+	stopwatch.o \
+    matrix_naive.o \
+    matrix_submatrix.o \
+    matrix_sse.o \
+    matrix_sse_prefetch.o 
 
-tests/test-%: %.c
-	$(CC) $(CFLAGS) -o $@ $(SRCS_common) $< stopwatch.c
+deps := $(OBJS:%.o=%.o.d)
+OBJS := $(addprefix $(OUT)/,$(OBJS))
+deps := $(addprefix $(OUT)/,$(deps))
+
+
+METHOD_NUM = $(shell echo $(words $(OBJS)) - 1 | bc)
+REPEAT = 100
+
+$(OUT)/%.o: %.c
+	$(CC) $(CFLAGS) -c -o $@ -MMD -MF $@.d $<
+
+$(OUT)/test-%: tests/test-%.c $(OBJS) 
+	$(CC) $(CFLAGS) -DREPEAT=$(REPEAT) -o $@ $^ $(LDFLAGS)
+
+$(OBJS): | $(OUT)
+
+$(OUT):
+	@mkdir -p $@
 
 check: $(EXEC)
 	@for test in $^ ; \
@@ -32,17 +49,7 @@ check: $(EXEC)
 		echo "Execute $$test..." ; $$test && echo "OK!\n" ; \
 	done
 
-cache-test: $(EXEC)
-	@>time.txt
-	@for method in $(EXEC); \
-	do \
-		printf "%s"$$method" "; \
-		perf stat --repeat $(REPEAT) \
-		-e cache-misses,cache-references ./$$method; \
-		printf "\n"; \
-	done >> time.txt
-
-output.txt: cache-test calculate
+output.txt: check calculate
 	./calculate $(METHOD_NUM) $(REPEAT)
 
 plot: output.txt
@@ -52,4 +59,7 @@ calculate: calculate.c
 	$(CC) $(CFLAGS_common) $^ -o $@ -lm
 
 clean:
-	$(RM) $(EXEC) calculate *.txt runtime.png
+	$(RM) $(EXEC) $(OBJS) $(deps) calculate *.txt runtime.png
+	@rm -rf $(OUT)
+
+-include $(deps)

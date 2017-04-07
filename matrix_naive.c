@@ -1,5 +1,5 @@
-#include "matrix.h"
 #include <stdlib.h>
+#include "matrix.h"
 
 struct matrix_priv {
     float values[4][4];
@@ -31,7 +31,7 @@ static bool equal(const Matrix *l, const Matrix *r)
     return true;
 }
 
-bool mul(Matrix *dst, const Matrix *l, const Matrix *r)
+static bool mul(Matrix *dst, const Matrix *l, const Matrix *r)
 {
     /* FIXME: error hanlding */
     dst->priv = malloc(4 * 4 * sizeof(float));
@@ -43,8 +43,4 @@ bool mul(Matrix *dst, const Matrix *l, const Matrix *r)
     return true;
 }
 
-MatrixAlgo MatrixProvider = {
-    .assign = assign,
-    .equal = equal,
-    .mul = mul,
-};
+REGISTER_ALGO(naive)
